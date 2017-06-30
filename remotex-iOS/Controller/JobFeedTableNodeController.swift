@@ -7,7 +7,7 @@
 //
 
 import AsyncDisplayKit
-import SafariServices
+import StoreKit
 
 class JobFeedTableNodeController: ASViewController<ASTableNode> {
     
@@ -127,6 +127,9 @@ class JobFeedTableNodeController: ASViewController<ASTableNode> {
                 self.activityIndicator.stopAnimating()
                 self.addRowsIntoTableNode(newJobCount: additions)
                 context?.completeBatchFetching(true)
+                if self.jobFeed.numberOfItemsInFeed > 30 && self.jobFeed.numberOfItemsInFeed <= 40 {
+                    self.requestReview()
+                }
             case .noConnection:
                 self.activityIndicator.stopAnimating()
                 PromptMessageWrap.show(withMessage: Constants.MessageDescription.NoInternetConnection)
@@ -172,9 +175,10 @@ extension JobFeedTableNodeController: ASTableDelegate, ASTableDataSource {
     
     func tableNode(_ tableNode: ASTableNode, didSelectRowAt indexPath: IndexPath) {
         let job = jobFeed.jobs[indexPath.row]
+        let jobTitle = job.jobTitle
         let jobID = job.jobID
         let url = URL.URLForJobRedirect(withID: jobID)
-        let jobViewController = JobWebViewController.init(withURL: url)
+        let jobViewController = JobWebViewController.init(withURL: url, withTitle: jobTitle)
         self.navigationController?.pushViewController(jobViewController, animated: true)
         tableNode.deselectRow(at: indexPath, animated: false)
     }
@@ -185,9 +189,10 @@ extension JobFeedTableNodeController: UIViewControllerPreviewingDelegate {
     public func previewingContext(_ previewingContext: UIViewControllerPreviewing, viewControllerForLocation location: CGPoint) -> UIViewController? {
         if let indexPath = self.node.indexPathForRow(at: location) {
             let job = jobFeed.jobs[indexPath.row]
+            let jobTitle = job.jobTitle
             let jobID = job.jobID
             let url = URL.URLForJobRedirect(withID: jobID)
-            let jobViewController = JobWebViewController.init(withURL: url)
+            let jobViewController = JobWebViewController.init(withURL: url, withTitle: jobTitle)
             return jobViewController
         } else {
             return nil
@@ -213,6 +218,17 @@ extension JobFeedTableNodeController {
         } else {
             self.statusBarNode.isHidden = true
             self.activityIndicator.center = CGPoint.init(x: max(self.node.frame.size.width, self.node.frame.size.height) / 2, y: min(self.node.frame.size.width, self.node.frame.size.height) / 2)
+        }
+    }
+}
+
+// request Review and rate
+extension JobFeedTableNodeController {
+    public func requestReview() {
+        if #available(iOS 10.3, *) {
+            SKStoreReviewController.requestReview()
+        } else {
+            // Fallback on earlier versions
         }
     }
 }
